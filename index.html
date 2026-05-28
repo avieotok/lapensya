@@ -207,6 +207,7 @@
   </div>
 
   <div class="progress-wrap"><div class="progress-bar" id="pbar"></div></div>
+  <div class="now" id="gridnote" style="margin-top:8px;">הימים = ימי עבודה שנותרו · השעות/דקות/שניות = הזמן עד סוף יום העבודה (או עד תחילת היום הבא)</div>
   <div class="status working" id="status">טוען…</div>
   <div class="now" id="nowline"></div>
 
@@ -353,6 +354,18 @@ function remainingWorkDays(now){
 }
 function workStart(dt){ const d=new Date(dt); d.setHours(WORK_START_H,WORK_START_M,0,0); return d; }
 function workEnd(dt){ const d=new Date(dt); d.setHours(WORK_END_H,WORK_END_M,0,0); return d; }
+// 06:30 של יום העבודה הבא (א'-ה', בלי שבת/חג)
+function nextWorkStart(now){
+  let d = new Date(now);
+  // אם היום יום עבודה ועדיין לפני 06:30 — היעד הוא היום ב-06:30
+  if (isCalendarWorkDay(d) && now < workStart(d)) return workStart(d);
+  // אחרת מתקדמים ליום הבא ומחפשים את יום העבודה הקרוב
+  d = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1);
+  while (!isCalendarWorkDay(d)){
+    d = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1);
+  }
+  return workStart(d);
+}
 
 // כמה שניות עבודה נותרו מ-now ועד END
 function remainingWorkSeconds(now){
@@ -440,17 +453,24 @@ function currentStatus(now){
 let totalAtLoad = null;
 function tick(){
   const now = new Date();
-  // ספירה לאחור רצופה עד תאריך היעד — לעולם לא נעצרת
   const secs = Math.max(0, Math.floor((END - now)/1000));
   if (totalAtLoad === null) totalAtLoad = secs > 0 ? secs : 1;
 
-  // ימים/שעות/דקות/שניות של זמן לוח אמיתי
   const SECS_PER_WORKDAY = (WORK_END_H*60+WORK_END_M - (WORK_START_H*60+WORK_START_M))*60; // לשימוש מונה 1986
 
   // ימים = ימי עבודה שנותרו (א'-ה', בלי שבת/חג). מחלה/חופש לא יורדים.
   const days = remainingWorkDays(now);
-  // שעות/דקות/שניות = הזמן שנותר בתוך היממה הנוכחית עד אותה שעה מחר (ספירה חיה)
-  let rem = secs % 86400;
+
+  // שעות/דקות/שניות = זמן עבודה שנותר:
+  //  - בתוך יום עבודה פעיל → עד 16:00 היום
+  //  - אחרת → עד 06:30 של יום העבודה הבא
+  let targetMoment;
+  if (isCalendarWorkDay(now) && now >= workStart(now) && now < workEnd(now)){
+    targetMoment = workEnd(now); // סוף יום העבודה היום
+  } else {
+    targetMoment = nextWorkStart(now); // תחילת יום העבודה הבא
+  }
+  let rem = Math.max(0, Math.floor((targetMoment - now)/1000));
   const hours = Math.floor(rem / 3600); rem -= hours*3600;
   const mins = Math.floor(rem / 60); rem -= mins*60;
   const sec = rem;
