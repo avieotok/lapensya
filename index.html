@@ -571,7 +571,8 @@
   }
   .batt-card h3 { font-size:.85rem; font-weight:600; color:#cdd9f0; margin-bottom:11px; }
   .batt-row { display:flex; align-items:center; gap:15px; margin-bottom:9px; }
-  .batt-lbl { flex:0 0 62px; font-size:.72rem; color:#9fb2d6; text-align:right; }
+  .batt-lbl { flex:0 0 62px; font-size:.72rem; color:#9fb2d6; text-align:right; line-height:1.25; }
+  .batt-sub { font-size:.58rem; color:#6f83a8; }
   /* גוף הסוללה — ltr כדי שהמילוי יתרוקן משמאל לימין כמו בסוללה אמיתית */
   .batt-shell {
     direction:ltr; position:relative; flex:1; height:19px;
@@ -721,7 +722,7 @@
       </div>
     </div>
     <div class="batt-row">
-      <span class="batt-lbl">קריירה</span>
+      <span class="batt-lbl">קריירה<br><span class="batt-sub">הושלם</span></span>
       <div class="batt-shell">
         <div class="batt-fill" id="battLifeFill"></div>
         <span class="batt-pct" id="battLifePct">--%</span>
@@ -1257,11 +1258,12 @@ function yearBattery(now, dayPct){
   return Math.max(0, Math.min(100, ((remaining - todayUsed) / total) * 100));
 }
 
-// סוללה של הקריירה — מ-18/02/1986 ועד היעד. מגיעה ל-0% ביום הפנסיה.
+// מד הקריירה — מ-18/02/1986 ועד היעד. בניגוד לשתי הסוללות האחרות זה מד התקדמות:
+// הוא מתמלא ככל שמתקרבים לפנסיה, ומגיע ל-100% ב-18/02/2029.
 function lifeBattery(remainingDays, workedDays){
   const total = remainingDays + workedDays;
   if (!total) return 0;
-  return Math.max(0, Math.min(100, (remainingDays / total) * 100));
+  return Math.max(0, Math.min(100, (workedDays / total) * 100));
 }
 
 function battClass(pct){
@@ -1308,8 +1310,9 @@ function updateBattery(now, remainingDays, workedDays){
   st.textContent = msg.text;
 
   document.getElementById("battFoot").textContent =
-    "נותרו " + yearBattCache.remaining.toLocaleString("he-IL") + " ימי עבודה השנה · " +
-    remainingDays.toLocaleString("he-IL") + " עד כיבוי מוחלט ב-18/02/2029";
+    "השלמת " + lifePct.toFixed(1) + "% מהקריירה · נותרו " +
+    remainingDays.toLocaleString("he-IL") + " ימי עבודה עד 18/02/2029 (" +
+    yearBattCache.remaining.toLocaleString("he-IL") + " מתוכם השנה)";
 }
 
 // ===== ניהול מצב לפי שלב היום =====
