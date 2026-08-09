@@ -6,9 +6,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ימי עבודה">
-<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="images/icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="images/icon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0f1f">
 <title>שעון ימי עבודה</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -252,7 +254,7 @@
   }
   body.arrival #arrivalImgWrap img { opacity: 1; }
 
-  /* תמונת נהיגה — מופיעה רק במצב נהיגה (06:03–06:05) */
+  /* תמונת נהיגה — מופיעה רק במצב נהיגה (06:02–06:05) */
   #driveImgWrap {
     position: relative; width: 100%; max-width: 230px; max-height: 30vh; margin: 0 auto 14px;
     aspect-ratio: 2 / 3; display: none; z-index: 1;
@@ -266,7 +268,7 @@
   }
   body.drive #driveImgWrap img { opacity: 1; }
 
-  /* תמונת כביש — מופיעה רק במצב כביש (06:06–06:30) */
+  /* תמונת כביש — מופיעה רק במצב כביש (06:05–06:30) */
   #roadImgWrap {
     position: relative; width: 100%; max-width: 230px; max-height: 30vh; margin: 0 auto 14px;
     aspect-ratio: 2 / 3; display: none; z-index: 1;
@@ -280,7 +282,7 @@
   }
   body.road #roadImgWrap img { opacity: 1; }
 
-  /* תמונת נהג — מופיעה רק במצב נהג (06:31–06:37) */
+  /* תמונת נהג — מופיעה רק במצב נהג (06:30–06:37) */
   #driverImgWrap {
     position: relative; width: 100%; max-width: 230px; max-height: 30vh; margin: 0 auto 14px;
     aspect-ratio: 2 / 3; display: none; z-index: 1;
@@ -294,7 +296,7 @@
   }
   body.driver #driverImgWrap img { opacity: 1; }
 
-  /* תמונת קפה — מופיעה רק במצב קפה (06:38–07:30) */
+  /* תמונת קפה — מופיעה רק במצב קפה (06:37–07:30) */
   #coffeeImgWrap {
     position: relative; width: 100%; max-width: 230px; max-height: 30vh; margin: 0 auto 14px;
     aspect-ratio: 2 / 3; display: none; z-index: 1;
@@ -308,7 +310,7 @@
   }
   body.coffee #coffeeImgWrap img { opacity: 1; }
 
-  /* תמונת מחסן עם רשימה — מופיעה רק במצב clipboard (07:31–10:00) */
+  /* תמונת מחסן עם רשימה — מופיעה רק במצב clipboard (07:30–10:00) */
   #clipboardImgWrap {
     position: relative; width: 100%; max-width: 230px; max-height: 30vh; margin: 0 auto 14px;
     aspect-ratio: 2 / 3; display: none; z-index: 1;
@@ -354,7 +356,7 @@
     background: linear-gradient(160deg, #3a1a2a 0%, #6b2e2f 40%, #c4661c 80%, #2a1410 100%);
   }
 
-  /* סליידשואו הגעה הביתה (16:46-17:00) — מתחלף כל 2 שניות */
+  /* סליידשואו הגעה הביתה (16:45-17:00) — מתחלף כל 2 שניות */
   #arrivedHomeImgWrap {
     position: relative; width: 100%; max-width: 230px; max-height: 30vh; margin: 0 auto 14px;
     aspect-ratio: 2 / 3; display: none; z-index: 1;
@@ -372,7 +374,7 @@
     background: linear-gradient(160deg, #2a1a3a 0%, #6b2e3f 35%, #c4661c 75%, #2a1410 100%);
   }
 
-  /* תמונת ערב/מנוחה בבית — מופיעה במצב evening (17:01–22:00) */
+  /* תמונת ערב/מנוחה בבית — מופיעה במצב evening (17:00–22:00) */
   #eveningImgWrap {
     position: relative; width: 100%; max-width: 230px; max-height: 30vh; margin: 0 auto 14px;
     aspect-ratio: 2 / 3; display: none; z-index: 1;
@@ -390,7 +392,7 @@
     background: linear-gradient(160deg, #1a1a3a 0%, #2a2055 45%, #3a2540 100%);
   }
 
-  /* תמונת שינה — מופיעה במצב sleep (22:00–05:29) */
+  /* תמונת שינה — מופיעה במצב sleep (22:00–05:46) */
   #sleepImgWrap {
     position: relative; width: 100%; max-width: 230px; max-height: 30vh; margin: 0 auto 14px;
     aspect-ratio: 2 / 3; display: none; z-index: 1;
@@ -739,6 +741,9 @@
 <script>
 // ===== הגדרות =====
 const END = new Date(2029, 1, 18, 16, 0, 0); // 18/02/2029 16:00 (חודש 1 = פברואר)
+// נקודת עוגן קבועה לחישוב אחוז ההתקדמות (תחילת השימוש באפליקציה).
+// חייבת להיות קבועה — אחרת פס ההתקדמות מתאפס בכל טעינה מחדש.
+const PROGRESS_START = new Date(2026, 4, 1); // 01/05/2026
 
 // ===== מסרי מוטיבציה לעבודה ופנסיה =====
 const MOTIVATION_MESSAGES = [
@@ -826,32 +831,31 @@ function fetchWeather(){
 fetchWeather();
 // רענון כל 30 דקות
 setInterval(fetchWeather, 30 * 60 * 1000);
-const START_REF = new Date(); // נקודת ההתחלה לחישוב אחוז ההתקדמות
 const WORK_START_H = 6, WORK_START_M = 30; // 06:30
 const WORK_END_H = 16, WORK_END_M = 0;     // 16:00
 // חלונות נסיעה (דקות מתחילת היום)
 const COMMUTE_MORNING_START = 6*60;        // 06:00 (תחילת חלון הגעה)
 const ARRIVAL_END           = 6*60 + 2;    // 06:02 (סוף הגעה)
-const DRIVE_START           = 6*60 + 3;    // 06:03 (תחילת תמונת נהיגה בחניון)
+const DRIVE_START           = 6*60 + 2;    // 06:02 (תחילת נהיגה — ממשיך ישירות מההגעה)
 const DRIVE_END             = 6*60 + 5;    // 06:05 (סוף תמונת נהיגה בחניון)
-const ROAD_START            = 6*60 + 6;    // 06:06 (תחילת תמונת כביש)
+const ROAD_START            = 6*60 + 5;    // 06:05 (תחילת כביש — ממשיך ישירות מהנהיגה)
 const ROAD_END              = 6*60 + 30;   // 06:30 (סוף תמונת כביש)
-const DRIVER_START          = 6*60 + 31;   // 06:31 (תחילת תמונת נהג)
+const DRIVER_START          = 6*60 + 30;   // 06:30 (תחילת נהג — ממשיך ישירות מהכביש)
 const DRIVER_END            = 6*60 + 37;   // 06:37 (סוף תמונת נהג)
-const COFFEE_START          = 6*60 + 38;   // 06:38 (תחילת תמונת קפה)
+const COFFEE_START          = 6*60 + 37;   // 06:37 (תחילת קפה — ממשיך ישירות מהנהג)
 const COFFEE_END            = 7*60 + 30;   // 07:30 (סוף תמונת קפה)
-const CLIPBOARD_START       = 7*60 + 31;   // 07:31 (תחילת תמונת מחסן עם רשימה)
+const CLIPBOARD_START       = 7*60 + 30;   // 07:30 (תחילת מחסן — ממשיך ישירות מהקפה)
 const CLIPBOARD_END         = 10*60;       // 10:00 (סוף תמונת מחסן עם רשימה)
 const TIRED_START           = 15*60;       // 15:00 (תחילת תמונת סוף יום)
 const TIRED_END             = 16*60;       // 16:00 (סוף תמונת סוף יום)
 const HOMEWARD_START        = 16*60 + 1;   // 16:01 (תחילת סליידשואו נסיעה הביתה)
 const HOMEWARD_END          = 16*60 + 45;  // 16:45 (סיום נסיעה הביתה)
-const ARRIVED_HOME_START    = 16*60 + 46;  // 16:46 (תחילת הגעה הביתה)
+const ARRIVED_HOME_START    = 16*60 + 45;  // 16:45 (תחילת הגעה הביתה — ממשיך ישירות מהנסיעה)
 const ARRIVED_HOME_END      = 17*60;       // 17:00 (סוף הגעה הביתה)
-const EVENING_START         = 17*60 + 1;   // 17:01 (תחילת ערב/מנוחה)
+const EVENING_START         = 17*60;       // 17:00 (תחילת ערב/מנוחה — ממשיך ישירות מההגעה)
 const EVENING_END           = 22*60;       // 22:00 (סוף ערב/מנוחה)
 const SLEEP_START           = 22*60;       // 22:00 (תחילת שינה)
-const SLEEP_END             = 5*60 + 30;   // 05:30 (סוף שינה)
+const SLEEP_END             = 5*60 + 47;   // 05:47 (סוף שינה — ממשיך ישירות למצב התעוררות)
 const WAKE_START            = 5*60 + 47;   // 05:47 (תחילת התעוררות)
 const WAKE_END              = 6*60;        // 06:00 (סוף התעוררות, תחילת רצף הבוקר)
 const COMMUTE_MORNING_END   = 6*60 + 30;   // 06:30 (תחילת עבודה)
@@ -860,6 +864,9 @@ const COMMUTE_EVENING_END   = 16*60 + 45;  // 16:45
 
 // תאריכי חגים וערבי חג שבהם השעון מושבת (YYYY-MM-DD)
 const HOLIDAYS = new Set([
+  "2026-03-03","2026-04-01","2026-04-02","2026-04-03","2026-04-04",
+  "2026-04-05","2026-04-06","2026-04-07","2026-04-08","2026-04-22",
+  "2026-05-21","2026-05-22",
   "2026-09-11","2026-09-12","2026-09-13","2026-09-20","2026-09-21",
   "2026-09-25","2026-09-26","2026-09-27","2026-09-28","2026-09-29",
   "2026-09-30","2026-10-01","2026-10-02","2026-10-03","2027-03-23",
@@ -881,7 +888,10 @@ function ymd(dt){
 }
 
 // תאריכי מחלה/חופש שהמשתמש סימן (משביתים את השעון). שונות לא נכלל.
+// מוחזק במטמון — נקרא אלפי פעמים בלולאות החישוב, ופענוח JSON בכל קריאה תקע את הטעינה.
+let _offDaysCache = null;
 function offDaysFromEntries(){
+  if (_offDaysCache) return _offDaysCache;
   const set = new Set();
   try {
     const entries = JSON.parse(localStorage.getItem("workClockEntries") || "[]");
@@ -889,7 +899,13 @@ function offDaysFromEntries(){
       if (e.cat === "sick" || e.cat === "vac") set.add(e.date); // date בפורמט YYYY-MM-DD
     }
   } catch(e){}
+  _offDaysCache = set;
   return set;
+}
+// מבטל את המטמון אחרי כל שינוי ברישומים (וגם את מטמון מונה 1986 שתלוי בו)
+function invalidateOffDays(){
+  _offDaysCache = null;
+  workedCacheKey = null;
 }
 
 // יום עבודה = ראשון(0) עד חמישי(4), לא שישי(5)/שבת(6), לא חג, לא מחלה/חופש שסומן
@@ -1021,32 +1037,32 @@ function currentStatus(now){
 // קביעת שלב היום הנוכחי: 'commute' / 'warehouse' / 'rest'
 function currentPhase(now){
   const mins = now.getHours()*60 + now.getMinutes();
-  // שינה 22:00–05:29 — פעיל בכל יום (חוצה חצות)
+  // שינה 22:00–05:46 — פעיל בכל יום (חוצה חצות)
   if (mins >= SLEEP_START || mins < SLEEP_END) return 'sleep';
   // התעוררות 05:47–05:59 — פעיל בכל יום
   if (mins >= WAKE_START && mins < WAKE_END) return 'wake';
-  // ערב/מנוחה בבית 17:01–22:00 — פעיל בכל יום (כולל סופ"ש, חג, מחלה)
+  // ערב/מנוחה בבית 17:00–22:00 — פעיל בכל יום (כולל סופ"ש, חג, מחלה)
   if (mins >= EVENING_START && mins < EVENING_END) return 'evening';
   if (!isCalendarWorkDay(now)) return 'rest';        // סופ"ש/חג
   if (offDaysFromEntries().has(ymd(now))) return 'rest'; // מחלה/חופש שסומן
   // הגעה 06:00–06:02 (תמונה של דמות הולכת לבניין)
   if (mins >= COMMUTE_MORNING_START && mins < ARRIVAL_END) return 'arrival';
-  // נהיגה 06:03–06:05 (תמונה של נהיגה ברכב)
+  // נהיגה 06:02–06:05 (תמונה של נהיגה ברכב)
   if (mins >= DRIVE_START && mins < DRIVE_END) return 'drive';
-  // כביש 06:06–06:30 (תמונה של כביש מהיר)
+  // כביש 06:05–06:30 (תמונה של כביש מהיר)
   if (mins >= ROAD_START && mins < ROAD_END) return 'road';
   // נסיעה בוקר (שאר הזמן עד 06:30), נסיעה ערב 16:00–16:45
   if (mins >= ARRIVAL_END && mins < COMMUTE_MORNING_END) return 'commute';
   // נסיעה ערב 16:00 בלבד (דקה אחת באנר טקסט)
   if (mins >= HOMEWARD_START && mins < HOMEWARD_END) return 'homeward';
-  // הגעה הביתה 16:46–17:00 (סליידשואו של שתי תמונות)
+  // הגעה הביתה 16:45–17:00 (סליידשואו של שתי תמונות)
   if (mins >= ARRIVED_HOME_START && mins < ARRIVED_HOME_END) return 'arrived_home';
   if (mins >= COMMUTE_EVENING_START && mins < COMMUTE_EVENING_END) return 'commute';
-  // נהג 06:31–06:37 (תמונת פורטרט של הנהג ברכב)
+  // נהג 06:30–06:37 (תמונת פורטרט של הנהג ברכב)
   if (mins >= DRIVER_START && mins < DRIVER_END) return 'driver';
-  // קפה 06:38–07:30 (תמונת קפה במשרד)
+  // קפה 06:37–07:30 (תמונת קפה במשרד)
   if (mins >= COFFEE_START && mins < COFFEE_END) return 'coffee';
-  // מחסן עם רשימה 07:31–10:00
+  // מחסן עם רשימה 07:30–10:00
   if (mins >= CLIPBOARD_START && mins < CLIPBOARD_END) return 'clipboard';
   // סוף יום 15:00–16:00 (מחכים שכבר ייגמר)
   if (mins >= TIRED_START && mins < TIRED_END) return 'tired';
@@ -1055,11 +1071,8 @@ function currentPhase(now){
   return 'rest';
 }
 
-let totalAtLoad = null;
 function tick(){
   const now = new Date();
-  const secs = Math.max(0, Math.floor((END - now)/1000));
-  if (totalAtLoad === null) totalAtLoad = secs > 0 ? secs : 1;
 
   const SECS_PER_WORKDAY = (WORK_END_H*60+WORK_END_M - (WORK_START_H*60+WORK_START_M))*60; // לשימוש מונה 1986
 
@@ -1105,7 +1118,8 @@ function tick(){
   // החלפת מצב ויזואלי לפי שלב היום
   setMode(currentPhase(now));
 
-  const pct = Math.min(100, Math.max(0, (1 - secs/totalAtLoad)*100));
+  // אחוז ההתקדמות נמדד מנקודת עוגן קבועה ועד היעד, כך שהוא זהה בכל טעינה
+  const pct = Math.min(100, Math.max(0, ((now - PROGRESS_START) / (END - PROGRESS_START)) * 100));
   document.getElementById("pbar").style.width = pct.toFixed(2)+"%";
 
   document.getElementById("nowline").textContent =
@@ -1246,7 +1260,7 @@ function stopHomewardSlideshow(){
   if (homewardTimer){ clearInterval(homewardTimer); homewardTimer = null; }
 }
 
-// ===== סליידשואו הגעה הביתה (16:46-17:00) =====
+// ===== סליידשואו הגעה הביתה (16:45-17:00) =====
 let arrivedHomeTimer = null, arrivedHomeIdx = 0;
 function startArrivedHomeSlideshow(){
   if (arrivedHomeTimer) return;
@@ -1439,6 +1453,7 @@ function loadEntries(){
 }
 function saveEntries(arr){
   localStorage.setItem(STORE_KEY, JSON.stringify(arr));
+  invalidateOffDays();
 }
 
 // ===== סטטיסטיקות מורחבות =====
@@ -1456,8 +1471,9 @@ function buildStats(){
   const thisYear = now.getFullYear();
 
   // ספירת ימים ייחודיים לפי קטגוריה (יום שמסומן פעמיים נספר פעם אחת לאותה קטגוריה)
-  const byCat = { sick: new Set(), vacation: new Set(), misc: new Set() };
-  const byCatYear = { sick: new Set(), vacation: new Set(), misc: new Set() };
+  // המפתחות חייבים להתאים לערכים שנשמרים ברישומים: sick / vac / misc
+  const byCat = { sick: new Set(), vac: new Set(), misc: new Set() };
+  const byCatYear = { sick: new Set(), vac: new Set(), misc: new Set() };
   const yearsCovered = new Set();
 
   for (const e of entries){
@@ -1493,9 +1509,8 @@ function buildStats(){
   }
 
   // אחוז התקדמות לפנסיה (מתוך 18/02/2029)
-  const START_REF_FOR_PROGRESS = new Date(2026, 4, 1); // מהיום שהתחלנו עם האפליקציה
-  const totalSpan = END - START_REF_FOR_PROGRESS;
-  const elapsed = now - START_REF_FOR_PROGRESS;
+  const totalSpan = END - PROGRESS_START;
+  const elapsed = now - PROGRESS_START;
   const pct = Math.max(0, Math.min(100, (elapsed / totalSpan) * 100));
 
   // יום עם הכי הרבה רשומות
@@ -1530,7 +1545,7 @@ function buildStats(){
     <div class="stats-section">
       <h3>📅 השנה (${thisYear})</h3>
       <div class="stats-row"><span class="label">😷 ימי מחלה</span><span class="value bad">${byCatYear.sick.size}</span></div>
-      <div class="stats-row"><span class="label">🏖️ ימי חופש</span><span class="value good">${byCatYear.vacation.size}</span></div>
+      <div class="stats-row"><span class="label">🏖️ ימי חופש</span><span class="value good">${byCatYear.vac.size}</span></div>
       <div class="stats-row"><span class="label">📝 רשומות שונות</span><span class="value">${byCatYear.misc.size}</span></div>
       <div class="stats-row"><span class="label">💼 ימי עבודה שעברו</span><span class="value">${workdaysPassed}</span></div>
       <div class="stats-row"><span class="label">⏳ ימי עבודה שנותרו השנה</span><span class="value">${remainingThisYear}</span></div>
@@ -1539,7 +1554,7 @@ function buildStats(){
     <div class="stats-section">
       <h3>📚 סה״כ מאז התחלת השימוש</h3>
       <div class="stats-row"><span class="label">😷 ימי מחלה</span><span class="value bad">${byCat.sick.size}</span></div>
-      <div class="stats-row"><span class="label">🏖️ ימי חופש</span><span class="value good">${byCat.vacation.size}</span></div>
+      <div class="stats-row"><span class="label">🏖️ ימי חופש</span><span class="value good">${byCat.vac.size}</span></div>
       <div class="stats-row"><span class="label">📝 רשומות שונות</span><span class="value">${byCat.misc.size}</span></div>
       <div class="stats-row"><span class="label">🗓️ שנים פעילות</span><span class="value">${yearsCovered.size}</span></div>
     </div>
@@ -1589,7 +1604,6 @@ function saveEntry(){
   entries.push({ id: Date.now(), date, cat, note });
   entries.sort((a,b)=> b.date.localeCompare(a.date)); // חדש למעלה
   saveEntries(entries);
-  totalAtLoad = null; // לחשב מחדש את בסיס פס ההתקדמות
   closeModal();
   // לוודא שההיסטוריה פתוחה ומעודכנת
   document.getElementById("histPanel").style.display = "block";
@@ -1614,13 +1628,25 @@ function undoToday(){
 function delEntry(id){
   if (!confirm("למחוק את הרישום?")) return;
   saveEntries(loadEntries().filter(e=> e.id !== id));
-  totalAtLoad = null;
   renderHist();
+  tick();
 }
 
 
 // ===== רשימת חגים שנלקחו בחשבון =====
 const HOLIDAY_LIST = [
+  ["2026-03-03","פורים"],
+  ["2026-04-01","ערב פסח"],
+  ["2026-04-02","פסח"],
+  ["2026-04-03","חול המועד פסח"],
+  ["2026-04-04","חול המועד פסח"],
+  ["2026-04-05","חול המועד פסח"],
+  ["2026-04-06","חול המועד פסח"],
+  ["2026-04-07","חול המועד פסח"],
+  ["2026-04-08","שביעי של פסח"],
+  ["2026-04-22","יום העצמאות"],
+  ["2026-05-21","ערב שבועות"],
+  ["2026-05-22","שבועות"],
   ["2026-09-11","ערב ראש השנה"],
   ["2026-09-12","ראש השנה"],
   ["2026-09-13","ראש השנה ב"],
