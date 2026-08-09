@@ -562,6 +562,55 @@
     text-align: center; padding: 14px;
     color: #aaa; font-style: italic;
   }
+  /* ===== מד סוללה אנושי ===== */
+  .batt-card {
+    width:100%; max-width:440px; margin-top:12px; padding:13px 15px;
+    border-radius:16px; border:1px solid rgba(255,255,255,.12);
+    background:linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+    text-align:center;
+  }
+  .batt-card h3 { font-size:.85rem; font-weight:600; color:#cdd9f0; margin-bottom:11px; }
+  .batt-row { display:flex; align-items:center; gap:15px; margin-bottom:9px; }
+  .batt-lbl { flex:0 0 62px; font-size:.72rem; color:#9fb2d6; text-align:right; }
+  /* גוף הסוללה — ltr כדי שהמילוי יתרוקן משמאל לימין כמו בסוללה אמיתית */
+  .batt-shell {
+    direction:ltr; position:relative; flex:1; height:19px;
+    border:2px solid rgba(255,255,255,.32); border-radius:5px;
+    background:rgba(0,0,0,.28);
+  }
+  .batt-shell::after {
+    content:""; position:absolute; top:50%; right:-6px; transform:translateY(-50%);
+    width:4px; height:8px; border-radius:0 2px 2px 0;
+    background:rgba(255,255,255,.32);
+  }
+  .batt-fill {
+    position:absolute; inset:0 auto 0 0; width:0%; border-radius:3px;
+    transition:width .6s ease, background .8s ease;
+    background:linear-gradient(90deg,#3ec98a,#7fe0a8);
+  }
+  .batt-fill.mid  { background:linear-gradient(90deg,#e0b23c,#ffd97a); }
+  .batt-fill.low  { background:linear-gradient(90deg,#e07a3c,#ffab6b); }
+  .batt-fill.crit { background:linear-gradient(90deg,#d63c3c,#ff7b7b); animation:battBlink 1.4s ease-in-out infinite; }
+  .batt-fill.charging { animation:battCharge 1.8s ease-in-out infinite; }
+  /* סוללות השנה והקריירה נשארות באדום קבוע — הבהוב מתמיד רק מעייף את העין */
+  .batt-fill.steady { animation:none; opacity:1; }
+  @keyframes battBlink { 0%,100%{opacity:1;} 50%{opacity:.42;} }
+  @keyframes battCharge { 0%,100%{opacity:.72;} 50%{opacity:1;} }
+  .batt-pct {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:.68rem; font-weight:700; color:#fff; font-variant-numeric:tabular-nums;
+    text-shadow:0 1px 3px rgba(0,0,0,.75); letter-spacing:.3px;
+  }
+  .batt-status {
+    margin-top:4px; padding:7px 10px; border-radius:10px;
+    font-size:.74rem; line-height:1.4;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+    color:#cdd9f0;
+  }
+  .batt-status.crit { background:rgba(214,60,60,.15); border-color:rgba(255,120,120,.35); color:#ffc0c0; }
+  .batt-status.low  { background:rgba(224,122,60,.14); border-color:rgba(255,170,110,.32); color:#ffd8b8; }
+  .batt-status.chg  { background:rgba(60,200,140,.13); border-color:rgba(120,255,190,.32); color:#b8ffdc; }
+  .batt-foot { margin-top:7px; font-size:.62rem; color:#6f83a8; line-height:1.35; }
 
 </style>
 </head>
@@ -653,6 +702,34 @@
   <div class="now" id="gridnote" style="margin-top:8px;">הימים = ימי עבודה שנותרו · השעות/דקות/שניות = הזמן עד סוף יום העבודה (או עד תחילת היום הבא)</div>
   <div class="status working" id="status">טוען…</div>
   <div class="now" id="nowline"></div>
+
+  <!-- מד סוללה אנושי -->
+  <div class="batt-card">
+    <h3>🔋 מד סוללה</h3>
+    <div class="batt-row">
+      <span class="batt-lbl">היום</span>
+      <div class="batt-shell">
+        <div class="batt-fill" id="battDayFill"></div>
+        <span class="batt-pct" id="battDayPct">--%</span>
+      </div>
+    </div>
+    <div class="batt-row">
+      <span class="batt-lbl">השנה</span>
+      <div class="batt-shell">
+        <div class="batt-fill" id="battYearFill"></div>
+        <span class="batt-pct" id="battYearPct">--%</span>
+      </div>
+    </div>
+    <div class="batt-row">
+      <span class="batt-lbl">קריירה</span>
+      <div class="batt-shell">
+        <div class="batt-fill" id="battLifeFill"></div>
+        <span class="batt-pct" id="battLifePct">--%</span>
+      </div>
+    </div>
+    <div class="batt-status" id="battStatus">טוען…</div>
+    <div class="batt-foot" id="battFoot"></div>
+  </div>
 
   <!-- כפתורי רישום -->
   <div class="btns">
@@ -1115,6 +1192,9 @@ function tick(){
   sEl.className = "status " + st.state;
   sEl.textContent = st.text;
 
+  // מד סוללה — משתמש בערכים שכבר חושבו למעלה
+  updateBattery(now, days, wdays);
+
   // החלפת מצב ויזואלי לפי שלב היום
   setMode(currentPhase(now));
 
@@ -1129,6 +1209,107 @@ function tick(){
   const todayKey = ymd(now);
   const undoBtn = document.getElementById("undoToday");
   undoBtn.style.display = offDaysFromEntries().has(todayKey) ? "block" : "none";
+}
+
+// ===== מד סוללה אנושי =====
+// שלוש רמות: היום (06:30→16:00), השנה (ימי עבודה שנותרו), והקריירה כולה (1986→2029).
+const BATT_FULL = 100, BATT_EMPTY = 3;
+
+// סוללה יומית — מתרוקנת לאורך יום העבודה, ונטענת בלילה ובסופ"ש
+function dayBattery(now){
+  const mins = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+  const WS = WORK_START_H*60 + WORK_START_M;
+  const WE = WORK_END_H*60 + WORK_END_M;
+  const nightSpan = (24*60 - WE) + WS; // משעת הסיום ועד תחילת היום הבא
+
+  if (!isWorkDay(now)) return { pct: BATT_FULL, charging: true, rest: true };
+  if (mins >= WE){
+    const done = (mins - WE) / nightSpan;
+    return { pct: BATT_EMPTY + (BATT_FULL-BATT_EMPTY)*Math.min(1,done), charging: true };
+  }
+  if (mins < WS){
+    const done = ((24*60 - WE) + mins) / nightSpan;
+    return { pct: BATT_EMPTY + (BATT_FULL-BATT_EMPTY)*Math.min(1,done), charging: true };
+  }
+  const used = (mins - WS) / (WE - WS);
+  return { pct: BATT_FULL - (BATT_FULL-BATT_EMPTY)*used, charging: false };
+}
+
+// סוללה שנתית — ימי עבודה שנותרו השנה מתוך סך ימי העבודה בשנה (מחושב פעם ביום)
+let yearBattCache = { key:null, total:0, remaining:0 };
+function yearBattery(now, dayPct){
+  const key = ymd(now);
+  if (yearBattCache.key !== key){
+    const y = now.getFullYear();
+    let total = 0, remaining = 0;
+    const today = new Date(y, now.getMonth(), now.getDate());
+    const cur = new Date(y, 0, 1);
+    while (cur.getFullYear() === y){
+      if (isCalendarWorkDay(cur)){ total++; if (cur >= today) remaining++; }
+      cur.setDate(cur.getDate()+1);
+    }
+    yearBattCache = { key, total, remaining };
+  }
+  const { total, remaining } = yearBattCache;
+  if (!total) return 0;
+  // מנכים את החלק של היום שכבר נשרף, כדי שהסוללה תזוז גם במהלך היום
+  const todayUsed = isWorkDay(now) ? (1 - dayPct/100) : 0;
+  return Math.max(0, Math.min(100, ((remaining - todayUsed) / total) * 100));
+}
+
+// סוללה של הקריירה — מ-18/02/1986 ועד היעד. מגיעה ל-0% ביום הפנסיה.
+function lifeBattery(remainingDays, workedDays){
+  const total = remainingDays + workedDays;
+  if (!total) return 0;
+  return Math.max(0, Math.min(100, (remainingDays / total) * 100));
+}
+
+function battClass(pct){
+  if (pct <= 10) return "crit";
+  if (pct <= 25) return "low";
+  if (pct <= 55) return "mid";
+  return "";
+}
+
+function paintBattery(fillEl, pctEl, pct, charging, steady){
+  const p = Math.max(0, Math.min(100, pct));
+  fillEl.style.width = p.toFixed(1) + "%";
+  fillEl.className = "batt-fill " + battClass(p) + (charging ? " charging" : "") + (steady ? " steady" : "");
+  pctEl.textContent = (charging ? "⚡ " : "") + Math.round(p) + "%";
+}
+
+// הודעת מצב לפי רמת הסוללה היומית
+function battMessage(day, now){
+  if (day.rest) return { cls:"chg", text:"⚡ בטעינה מהירה — אין צריכת אנרגיה היום" };
+  if (day.charging) return { cls:"chg", text:"⚡ בטעינה — נא לא לנתק מהמטען" };
+  const p = day.pct;
+  if (p > 85) return { cls:"", text:"🔋 טעון במלואו · כל המערכות פעילות" };
+  if (p > 55) return { cls:"", text:"🔋 פועל כרגיל · ביצועים תקינים" };
+  if (p > 25) return { cls:"", text:"🪫 מצב חיסכון בסוללה: תנועות מיותרות הושבתו" };
+  if (p > 10) return { cls:"low", text:"🪫 סוללה חלשה · מומלץ לסגור אפליקציות רקע" };
+  if (p > 5)  return { cls:"crit", text:"⚠️ " + Math.round(p) + "% — חבר מטען. קפה. עכשיו." };
+  return { cls:"crit", text:"⚠️ מצב קריטי · כיבוי צפוי בכל רגע" };
+}
+
+function updateBattery(now, remainingDays, workedDays){
+  const dayFill = document.getElementById("battDayFill");
+  if (!dayFill) return;
+  const day = dayBattery(now);
+  const yearPct = yearBattery(now, day.pct);
+  const lifePct = lifeBattery(remainingDays, workedDays);
+
+  paintBattery(dayFill, document.getElementById("battDayPct"), day.pct, day.charging);
+  paintBattery(document.getElementById("battYearFill"), document.getElementById("battYearPct"), yearPct, false, true);
+  paintBattery(document.getElementById("battLifeFill"), document.getElementById("battLifePct"), lifePct, false, true);
+
+  const msg = battMessage(day, now);
+  const st = document.getElementById("battStatus");
+  st.className = "batt-status " + msg.cls;
+  st.textContent = msg.text;
+
+  document.getElementById("battFoot").textContent =
+    "נותרו " + yearBattCache.remaining.toLocaleString("he-IL") + " ימי עבודה השנה · " +
+    remainingDays.toLocaleString("he-IL") + " עד כיבוי מוחלט ב-18/02/2029";
 }
 
 // ===== ניהול מצב לפי שלב היום =====
