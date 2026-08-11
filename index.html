@@ -571,7 +571,7 @@
   }
   .batt-card h3 { font-size:.85rem; font-weight:600; color:#cdd9f0; margin-bottom:11px; }
   .batt-row { display:flex; align-items:center; gap:15px; margin-bottom:9px; }
-  .batt-lbl { flex:0 0 62px; font-size:.72rem; color:#9fb2d6; text-align:right; line-height:1.25; }
+  .batt-lbl { flex:0 0 74px; font-size:.72rem; color:#9fb2d6; text-align:right; line-height:1.25; }
   .batt-sub { font-size:.58rem; color:#6f83a8; }
   /* גוף הסוללה — ltr כדי שהמילוי יתרוקן משמאל לימין כמו בסוללה אמיתית */
   .batt-shell {
@@ -722,7 +722,7 @@
       </div>
     </div>
     <div class="batt-row">
-      <span class="batt-lbl">קריירה<br><span class="batt-sub">הושלם</span></span>
+      <span class="batt-lbl">ימי עבודה<br><span class="batt-sub">הושלם</span></span>
       <div class="batt-shell">
         <div class="batt-fill" id="battLifeFill"></div>
         <span class="batt-pct" id="battLifePct">--%</span>
@@ -1214,7 +1214,7 @@ function tick(){
 
 // ===== מד סוללה אנושי =====
 // שלוש רמות: היום (06:30→16:00), השנה (ימי עבודה שנותרו), והקריירה כולה (1986→2029).
-const BATT_FULL = 100, BATT_EMPTY = 3;
+const BATT_FULL = 100, BATT_EMPTY = 0; // מגיעה ל-0% בדיוק ב-16:00
 
 // סוללה יומית — מתרוקנת לאורך יום העבודה, ונטענת בלילה ובסופ"ש
 function dayBattery(now){
@@ -1283,14 +1283,18 @@ function paintBattery(fillEl, pctEl, pct, charging, steady){
 // הודעת מצב לפי רמת הסוללה היומית
 function battMessage(day, now){
   if (day.rest) return { cls:"chg", text:"⚡ בטעינה מהירה — אין צריכת אנרגיה היום" };
-  if (day.charging) return { cls:"chg", text:"⚡ בטעינה — נא לא לנתק מהמטען" };
+  if (day.charging){
+    // הדקות הראשונות אחרי 16:00 — הסוללה בדיוק נגמרה
+    if (day.pct < 6) return { cls:"chg", text:"🔌 הסוללה התרוקנה · יום העבודה הסתיים" };
+    return { cls:"chg", text:"⚡ בטעינה — נא לא לנתק מהמטען" };
+  }
   const p = day.pct;
   if (p > 85) return { cls:"", text:"🔋 טעון במלואו · כל המערכות פעילות" };
   if (p > 55) return { cls:"", text:"🔋 פועל כרגיל · ביצועים תקינים" };
   if (p > 25) return { cls:"", text:"🪫 מצב חיסכון בסוללה: תנועות מיותרות הושבתו" };
   if (p > 10) return { cls:"low", text:"🪫 סוללה חלשה · מומלץ לסגור אפליקציות רקע" };
-  if (p > 5)  return { cls:"crit", text:"⚠️ " + Math.round(p) + "% — חבר מטען. קפה. עכשיו." };
-  return { cls:"crit", text:"⚠️ מצב קריטי · כיבוי צפוי בכל רגע" };
+  if (p > 3)  return { cls:"crit", text:"⚠️ " + Math.round(p) + "% — חבר מטען. קפה. עכשיו." };
+  return { cls:"crit", text:"⚠️ מצב קריטי · כיבוי אוטומטי ב-16:00" };
 }
 
 function updateBattery(now, remainingDays, workedDays){
@@ -1310,7 +1314,7 @@ function updateBattery(now, remainingDays, workedDays){
   st.textContent = msg.text;
 
   document.getElementById("battFoot").textContent =
-    "השלמת " + lifePct.toFixed(1) + "% מהקריירה · נותרו " +
+    "השלמת " + lifePct.toFixed(1) + "% מימי העבודה שלך · נותרו " +
     remainingDays.toLocaleString("he-IL") + " ימי עבודה עד 18/02/2029 (" +
     yearBattCache.remaining.toLocaleString("he-IL") + " מתוכם השנה)";
 }
