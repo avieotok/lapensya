@@ -226,6 +226,50 @@
   .stopw .stopw-note { margin-top:6px; font-size:.66rem; color:#8fa3c8; }
   .stopw .stopw-sep { height:1px; background:rgba(255,255,255,.10); margin:11px 0; }
 
+  /* ===== ⏳ עוד ספירות (ספירות קטנות מתחלפות) ===== */
+  .mini {
+    width:100%; max-width:440px; margin-top:12px; padding:12px 14px;
+    border-radius:16px; border:1px solid rgba(255,190,120,.22);
+    background:linear-gradient(160deg, rgba(255,190,120,.09), rgba(255,255,255,.02));
+    text-align:center;
+  }
+  .mini-head { display:flex; align-items:center; justify-content:center; gap:6px; position:relative; }
+  .mini-head h3 { font-size:.85rem; font-weight:600; color:#cdd9f0; }
+  .mini-gear {
+    position:absolute; inset-inline-end:0; top:-2px;
+    background:none; border:none; color:#8fa3c8; font-size:.9rem;
+    cursor:pointer; padding:2px 4px; line-height:1;
+  }
+  .mini-gear:hover { color:#fff; }
+  .mini-rot { cursor:pointer; padding:10px 4px 4px; user-select:none; }
+  .mini-rot.fade { opacity:0; transform:translateY(4px); }
+  .mini-rot { transition:opacity .22s ease, transform .22s ease; }
+  .mini-title { font-size:.76rem; color:#ffd28a; margin-bottom:4px; }
+  .mini-val {
+    font-size:1.35rem; font-weight:800; color:#fff; line-height:1.1;
+    font-variant-numeric:tabular-nums; letter-spacing:.4px;
+    text-shadow:0 2px 14px rgba(255,190,120,.35);
+    direction:ltr; unicode-bidi:isolate;
+  }
+  .mini-when { margin-top:4px; font-size:.63rem; color:#8fa3c8; }
+  .mini-dots { display:flex; justify-content:center; gap:5px; margin-top:8px; }
+  .mini-dot { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.20); transition:background .2s, transform .2s; }
+  .mini-dot.on { background:#ffd28a; transform:scale(1.35); }
+  .mini-all {
+    margin-top:9px; background:none; border:1px solid rgba(255,255,255,.14);
+    color:#9fb2d6; font-size:.66rem; border-radius:9px; padding:5px 11px;
+    cursor:pointer; font-family:inherit;
+  }
+  .mini-all:hover { color:#fff; border-color:rgba(255,255,255,.3); }
+  .mini-list { margin-top:9px; }
+  .mini-row {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:6px 9px; margin-bottom:5px; border-radius:10px;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.07);
+  }
+  .mini-row .mr-name { font-size:.72rem; color:#cdd9f0; text-align:right; }
+  .mini-row .mr-val { font-size:.76rem; font-weight:700; color:#ffd28a; font-variant-numeric:tabular-nums; direction:ltr; unicode-bidi:isolate; white-space:nowrap; }
+
   /* מונה "כמה עבדתי" תחתון */
   .worked {
     width:100%; max-width:440px; margin-top:12px; padding:12px 14px;
@@ -749,6 +793,22 @@
     <div class="stopw-units">ימים : שעות : דקות : שניות . עשירית</div>
   </div>
 
+  <!-- ⏳ עוד ספירות — שורה קטנה מתחלפת -->
+  <div class="mini">
+    <div class="mini-head">
+      <h3>⏳ עוד ספירות</h3>
+      <button class="mini-gear" type="button" onclick="setBirthday()" title="הגדרת יום הולדת">⚙️</button>
+    </div>
+    <div class="mini-rot" id="miniRot" onclick="miniNext()">
+      <div class="mini-title" id="miniTitle">טוען…</div>
+      <div class="mini-val" id="miniVal">--:--:--</div>
+      <div class="mini-when" id="miniWhen"></div>
+    </div>
+    <div class="mini-dots" id="miniDots"></div>
+    <button class="mini-all" type="button" id="miniAllBtn" onclick="toggleMiniAll()">הצג את כולן</button>
+    <div class="mini-list" id="miniList" style="display:none"></div>
+  </div>
+
   <div class="status working" id="status">טוען…</div>
   <div class="now" id="nowline"></div>
 
@@ -1257,6 +1317,9 @@ function tick(){
   document.getElementById("nowline").textContent =
     "עכשיו: " + now.toLocaleString("he-IL");
 
+  // ⏳ עוד ספירות
+  updateMini(now);
+
   // הצגת כפתור "בטל סימון של היום" רק אם היום מסומן מחלה/חופש
   const todayKey = ymd(now);
   const undoBtn = document.getElementById("undoToday");
@@ -1674,6 +1737,188 @@ function fastTick(){
     document.getElementById("swCalT").textContent = "." + Math.floor((cms % 1000) / 100);
   }
 }
+
+// ===== ⏳ עוד ספירות — ספירות קטנות מתחלפות =====
+const HEB_DOW = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+const BIRTH_KEY = "workClockBirthday";
+// יום הולדת ברירת מחדל — 12/02/1964. ניתן לשנות בכל רגע בכפתור ⚙️
+const DEFAULT_BIRTHDAY = "1964-02-12";
+function getBirthday(){
+  const v = localStorage.getItem(BIRTH_KEY);
+  return (v && /^\d{4}-\d{2}-\d{2}$/.test(v)) ? v : DEFAULT_BIRTHDAY;
+}
+
+// HOLIDAY_LIST מוגדר בהמשך הקובץ; הגישה מוגנת כדי שלא תיפול בטעינה הראשונה
+function holidayListSafe(){ try { return HOLIDAY_LIST; } catch(e){ return []; } }
+
+function isoToDate(iso, h, m){
+  const [y,mo,d] = iso.split("-").map(Number);
+  return new Date(y, mo-1, d, h||0, m||0, 0, 0);
+}
+function fmtWhen(dt, withTime){
+  let s = "יום " + HEB_DOW[dt.getDay()] + ", " +
+    String(dt.getDate()).padStart(2,"0") + "/" +
+    String(dt.getMonth()+1).padStart(2,"0") + "/" + dt.getFullYear();
+  if (withTime) s += " · " + String(dt.getHours()).padStart(2,"0") + ":" + String(dt.getMinutes()).padStart(2,"0");
+  return s;
+}
+// "3 ימים · 04:12:55" / "04:12:55"
+function fmtCountdown(ms){
+  if (ms <= 0) return "עכשיו!";
+  let sec = Math.floor(ms/1000);
+  const d = Math.floor(sec/86400); sec -= d*86400;
+  const h = Math.floor(sec/3600);  sec -= h*3600;
+  const m = Math.floor(sec/60);    sec -= m*60;
+  const clock = pad2(h)+":"+pad2(m)+":"+pad2(sec);
+  if (d === 0) return clock;
+  if (d === 1) return "יום 1 · " + clock;
+  return d.toLocaleString("he-IL") + " ימים · " + clock;
+}
+
+// סוף שבוע העבודה = 16:00 של יום העבודה האחרון לפני סופ״ש/חג ארוך
+function endOfWorkWeek(now){
+  for (let i = 0; i < 21; i++){
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate()+i);
+    if (!isCalendarWorkDay(d)) continue;
+    const we = workEnd(d);
+    if (we <= now) continue;
+    const next = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1);
+    if (!isCalendarWorkDay(next)) return we; // אחריו לא עובדים → זה סוף השבוע
+  }
+  return null;
+}
+// החג הקרוב מתוך רשימת החגים
+function nextHoliday(now){
+  const todayKey = ymd(now);
+  for (const [iso, name] of holidayListSafe()){
+    if (iso >= todayKey){
+      const dt = isoToDate(iso, 0, 0);
+      if (dt > now || iso === todayKey) return { dt, name };
+    }
+  }
+  return null;
+}
+// החופש הקרוב שסימנת בעצמך (קטגוריית 🏖️ חופש בתאריך עתידי)
+function nextVacation(now){
+  const todayKey = ymd(now);
+  let best = null;
+  for (const e of loadEntries()){
+    if (e.cat !== "vac") continue;
+    if (e.date < todayKey) continue;
+    if (!best || e.date < best.date) best = e;
+  }
+  if (!best) return null;
+  return { dt: isoToDate(best.date, 0, 0), note: best.note };
+}
+// יום ההולדת הבא (נשמר מקומית)
+function nextBirthday(now){
+  const raw = getBirthday();
+  if (!raw) return null;
+  const [, mo, d] = raw.split("-").map(Number);
+  let dt = new Date(now.getFullYear(), mo-1, d, 0,0,0,0);
+  if (dt <= now) dt = new Date(now.getFullYear()+1, mo-1, d, 0,0,0,0);
+  const birthYear = Number(raw.split("-")[0]);
+  return { dt, age: dt.getFullYear() - birthYear };
+}
+
+function setBirthday(){
+  const cur = getBirthday();
+  const val = prompt("תאריך יום ההולדת שלך (בפורמט YYYY-MM-DD):", cur);
+  if (val === null) return;
+  const v = val.trim();
+  if (v === ""){ localStorage.removeItem(BIRTH_KEY); updateMini(new Date()); return; } // חזרה לברירת המחדל
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)){ alert("פורמט לא תקין. דוגמה: 1964-02-12"); return; }
+  localStorage.setItem(BIRTH_KEY, v);
+  updateMini(new Date());
+}
+
+// בניית רשימת הספירות
+function buildMiniItems(now){
+  const items = [];
+
+  const eow = endOfWorkWeek(now);
+  if (eow) items.push({ title:"🏁 עד סוף שבוע העבודה", target:eow, when:fmtWhen(eow, true), short:"🏁 סוף שבוע העבודה" });
+
+  const vac = nextVacation(now);
+  if (vac) items.push({
+    title:"🏖️ עד החופש שסימנת" + (vac.note ? " — " + vac.note : ""),
+    target:vac.dt, when:fmtWhen(vac.dt, false), short:"🏖️ החופש הבא שלך"
+  });
+
+  const hol = nextHoliday(now);
+  if (hol) items.push({ title:"🕯️ עד " + hol.name, target:hol.dt, when:fmtWhen(hol.dt, false), short:"🕯️ " + hol.name });
+
+  const bd = nextBirthday(now);
+  if (bd) items.push({
+    title:"🎂 עד יום ההולדת ה-" + bd.age, target:bd.dt, when:fmtWhen(bd.dt, false), short:"🎂 יום ההולדת"
+  });
+
+  const eom = new Date(now.getFullYear(), now.getMonth()+1, 1, 0,0,0,0);
+  items.push({ title:"🌙 עד סוף החודש", target:eom, when:fmtWhen(eom, false), short:"🌙 סוף החודש" });
+
+  const eoy = new Date(now.getFullYear()+1, 0, 1, 0,0,0,0);
+  items.push({ title:"🎆 עד סוף השנה", target:eoy, when:fmtWhen(eoy, false), short:"🎆 סוף השנה" });
+
+  return items;
+}
+
+let miniIdx = 0;
+let miniAllOpen = false;
+
+function miniNext(){
+  const rot = document.getElementById("miniRot");
+  if (!rot) return;
+  rot.classList.add("fade");
+  setTimeout(function(){
+    miniIdx++;
+    updateMini(new Date());
+    rot.classList.remove("fade");
+  }, 200);
+}
+
+function toggleMiniAll(){
+  miniAllOpen = !miniAllOpen;
+  document.getElementById("miniList").style.display = miniAllOpen ? "block" : "none";
+  document.getElementById("miniAllBtn").textContent = miniAllOpen ? "הסתר" : "הצג את כולן";
+  updateMini(new Date());
+}
+
+function updateMini(now){
+  const titleEl = document.getElementById("miniTitle");
+  if (!titleEl) return;
+  const items = buildMiniItems(now);
+  if (!items.length) return;
+  if (miniIdx >= items.length) miniIdx = 0;
+  const it = items[miniIdx];
+
+  titleEl.textContent = it.title;
+  document.getElementById("miniVal").textContent =
+    it.target ? fmtCountdown(it.target - now) : "—";
+  document.getElementById("miniWhen").textContent = it.when;
+
+  // נקודות חיווי
+  const dots = document.getElementById("miniDots");
+  if (dots.children.length !== items.length){
+    dots.innerHTML = items.map(function(_,i){ return '<span class="mini-dot"></span>'; }).join("");
+  }
+  for (let i = 0; i < dots.children.length; i++){
+    dots.children[i].className = "mini-dot" + (i === miniIdx ? " on" : "");
+  }
+
+  // רשימה מלאה (רק כשפתוחה)
+  if (miniAllOpen){
+    document.getElementById("miniList").innerHTML = items.map(function(x){
+      return '<div class="mini-row"><span class="mr-name">' + x.short +
+             '</span><span class="mr-val">' + (x.target ? fmtCountdown(x.target - now) : "—") +
+             '</span></div>';
+    }).join("");
+  }
+}
+
+// החלפה אוטומטית כל 7 שניות (נעצרת כשהאפליקציה ברקע)
+setInterval(function(){
+  if (!document.hidden) miniNext();
+}, 7000);
 
 // כותרת הסטופר נגזרת אוטומטית מ-END, כך שהיא מתעדכנת אם משנים את תאריך היעד
 (function(){
