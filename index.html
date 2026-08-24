@@ -195,6 +195,37 @@
   .holrow .hdate { font-size:.78rem; color:#9fb2d6; font-variant-numeric:tabular-nums; }
   .holyear { font-size:.8rem; font-weight:700; color:#7f9bd8; margin:12px 0 6px; text-align:right; }
 
+  /* ===== סטופר לפנסיה (עשיריות שנייה) ===== */
+  .cell .num .tenth {
+    font-size: 1.15rem; font-weight: 700; color: #7fe0a8;
+    font-variant-numeric: tabular-nums; margin-inline-start: 1px;
+  }
+  .stopw {
+    width:100%; max-width:440px; margin-top:12px; padding:13px 14px;
+    border-radius:16px; border:1px solid rgba(120,220,255,.22);
+    background:linear-gradient(160deg, rgba(95,208,255,.10), rgba(255,255,255,.02));
+    text-align:center;
+  }
+  .stopw h3 { font-size:.85rem; font-weight:600; color:#cdd9f0; margin-bottom:2px; }
+  .stopw .stopw-sub { font-size:.68rem; color:#7f93b8; margin-bottom:10px; }
+  .stopw .stopw-lbl { font-size:.68rem; color:#9fb2d6; margin-bottom:3px; }
+  .stopw .stopw-main {
+    font-size:1.72rem; font-weight:800; line-height:1.05; color:#fff;
+    font-variant-numeric:tabular-nums; letter-spacing:.5px;
+    text-shadow:0 2px 16px rgba(95,208,255,.45);
+    direction:ltr; unicode-bidi:isolate;
+  }
+  .stopw .stopw-main .t { color:#7fe0a8; font-size:1.2rem; }
+  .stopw .stopw-cal {
+    font-size:1.28rem; font-weight:700; line-height:1.05; color:#dbe6ff;
+    font-variant-numeric:tabular-nums; letter-spacing:.5px;
+    direction:ltr; unicode-bidi:isolate;
+  }
+  .stopw .stopw-cal .t { color:#ffd28a; font-size:.95rem; }
+  .stopw .stopw-units { margin-top:3px; font-size:.6rem; color:#6f83a8; letter-spacing:.2px; }
+  .stopw .stopw-note { margin-top:6px; font-size:.66rem; color:#8fa3c8; }
+  .stopw .stopw-sep { height:1px; background:rgba(255,255,255,.10); margin:11px 0; }
+
   /* מונה "כמה עבדתי" תחתון */
   .worked {
     width:100%; max-width:440px; margin-top:12px; padding:12px 14px;
@@ -696,11 +727,28 @@
     <div class="cell days"><div class="num" id="d">--</div><div class="lbl">ימים</div></div>
     <div class="cell"><div class="num" id="h">--</div><div class="lbl">שעות</div></div>
     <div class="cell"><div class="num" id="m">--</div><div class="lbl">דקות</div></div>
-    <div class="cell"><div class="num" id="s">--</div><div class="lbl">שניות</div></div>
+    <div class="cell"><div class="num"><span id="s">--</span><span class="tenth" id="st">.0</span></div><div class="lbl">שניות</div></div>
   </div>
 
   <div class="progress-wrap"><div class="progress-bar" id="pbar"></div></div>
   <div class="now" id="gridnote" style="margin-top:8px;">הימים = ימי עבודה שנותרו · השעות/דקות/שניות = הזמן עד סוף יום העבודה (או עד תחילת היום הבא)</div>
+  <!-- ⏱️ סטופר לפנסיה — עשיריות שנייה -->
+  <div class="stopw">
+    <h3>⏱️ סטופר לפנסיה</h3>
+    <div class="stopw-sub" id="swTarget">עד 18/02/2029 · 16:00</div>
+
+    <div class="stopw-lbl">כמה זמן נשאר לי לעבוד בפועל</div>
+    <div class="stopw-main"><span id="swWork">--:--:--</span><span class="t" id="swWorkT">.0</span></div>
+    <div class="stopw-units">שעות : דקות : שניות . עשירית</div>
+    <div class="stopw-note" id="swWorkNote"></div>
+
+    <div class="stopw-sep"></div>
+
+    <div class="stopw-lbl">זמן קלנדרי שנותר (כולל לילות וסופ״ש)</div>
+    <div class="stopw-cal"><span id="swCal">---:--:--:--</span><span class="t" id="swCalT">.0</span></div>
+    <div class="stopw-units">ימים : שעות : דקות : שניות . עשירית</div>
+  </div>
+
   <div class="status working" id="status">טוען…</div>
   <div class="now" id="nowline"></div>
 
@@ -818,6 +866,9 @@
 
 <script>
 // ===== הגדרות =====
+// 🎯 תאריך היעד (הפנסיה). זה המקום היחיד שצריך לשנות אם היעד מתעדכן.
+// שימו לב: החודשים ב-JavaScript מתחילים מ-0, ולכן 1 = פברואר.
+// לדוגמה, לשינוי ל-28/02/2029 בשעה 16:00 →  new Date(2029, 1, 28, 16, 0, 0)
 const END = new Date(2029, 1, 18, 16, 0, 0); // 18/02/2029 16:00 (חודש 1 = פברואר)
 // נקודת עוגן קבועה לחישוב אחוז ההתקדמות (תחילת השימוש באפליקציה).
 // חייבת להיות קבועה — אחרת פס ההתקדמות מתאפס בכל טעינה מחדש.
@@ -1551,8 +1602,96 @@ function onYouTubeIframeAPIReady(){
   });
 })();
 
+// ===== ⏱️ סטופר לפנסיה — עדכון 10 פעמים בשנייה =====
+// חישוב מדויק (במילי-שניות) של זמן העבודה שנותר עד END.
+// כדי לא לרוץ על ~3 שנים עשר פעמים בשנייה, שומרים במטמון את השניות
+// מתחילת מחר ועד היעד, ומוסיפים בכל פריים רק את החלק של היום הנוכחי.
+let remWorkCacheKey = null;
+let remWorkCacheMs  = 0;
+function remainingWorkMs(now){
+  if (now >= END) return 0;
+  const key = ymd(now) + "|" + (localStorage.getItem("workClockEntries") || "").length;
+  if (remWorkCacheKey !== key){
+    remWorkCacheKey = key;
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0,0,0,0);
+    remWorkCacheMs = remainingWorkSeconds(tomorrow) * 1000;
+  }
+  let ms = remWorkCacheMs;
+  // החלק שנותר מיום העבודה של היום
+  if (isWorkDay(now)){
+    const ws = workStart(now), we = workEnd(now);
+    const segStart = now > ws ? now : ws;
+    const segEnd   = we < END ? we : END;
+    if (segEnd > segStart) ms += (segEnd - segStart);
+  }
+  return Math.max(0, ms);
+}
+
+function pad2(n){ return String(n).padStart(2,"0"); }
+
+function fastTick(){
+  const now = new Date();
+
+  // --- עשירית השנייה של המונה הראשי (עד סוף יום העבודה / תחילת הבא) ---
+  let target;
+  if (isCalendarWorkDay(now) && now >= workStart(now) && now < workEnd(now)){
+    target = workEnd(now);
+  } else {
+    target = nextWorkStart(now);
+  }
+  const msMain = Math.max(0, target - now);
+  const stEl = document.getElementById("st");
+  if (stEl) stEl.textContent = "." + Math.floor((msMain % 1000) / 100);
+
+  // --- סטופר: זמן עבודה שנותר בפועל ---
+  const wms = remainingWorkMs(now);
+  let wsec = Math.floor(wms / 1000);
+  const wh = Math.floor(wsec / 3600); wsec -= wh*3600;
+  const wm = Math.floor(wsec / 60);   wsec -= wm*60;
+  const swWork = document.getElementById("swWork");
+  if (swWork){
+    swWork.textContent = wh.toLocaleString("he-IL") + ":" + pad2(wm) + ":" + pad2(wsec);
+    document.getElementById("swWorkT").textContent = "." + Math.floor((wms % 1000) / 100);
+    const SECS_PER_WORKDAY = (WORK_END_H*60+WORK_END_M - (WORK_START_H*60+WORK_START_M))*60;
+    const noteEl = document.getElementById("swWorkNote");
+    if (noteEl){
+      noteEl.textContent = wms <= 0
+        ? "🎉 סיימת! הגעת ליעד"
+        : "≈ " + Math.ceil(wms/1000/SECS_PER_WORKDAY).toLocaleString("he-IL") + " ימי עבודה · "
+          + Math.floor(wms/3600000).toLocaleString("he-IL") + " שעות עבודה";
+    }
+  }
+
+  // --- סטופר: זמן קלנדרי שנותר ---
+  const cms = Math.max(0, END - now);
+  let csec = Math.floor(cms / 1000);
+  const cd = Math.floor(csec / 86400); csec -= cd*86400;
+  const ch = Math.floor(csec / 3600);  csec -= ch*3600;
+  const cm = Math.floor(csec / 60);    csec -= cm*60;
+  const swCal = document.getElementById("swCal");
+  if (swCal){
+    swCal.textContent = cd.toLocaleString("he-IL") + ":" + pad2(ch) + ":" + pad2(cm) + ":" + pad2(csec);
+    document.getElementById("swCalT").textContent = "." + Math.floor((cms % 1000) / 100);
+  }
+}
+
+// כותרת הסטופר נגזרת אוטומטית מ-END, כך שהיא מתעדכנת אם משנים את תאריך היעד
+(function(){
+  const el = document.getElementById("swTarget");
+  if (!el) return;
+  el.textContent = "עד " + String(END.getDate()).padStart(2,"0") + "/" +
+    String(END.getMonth()+1).padStart(2,"0") + "/" + END.getFullYear() +
+    " · " + String(END.getHours()).padStart(2,"0") + ":" + String(END.getMinutes()).padStart(2,"0");
+})();
+
 tick();
 setInterval(tick, 1000);
+fastTick();
+setInterval(fastTick, 100);
+// כשחוזרים לאפליקציה אחרי שהיא הייתה ברקע — רענון מיידי
+document.addEventListener("visibilitychange", function(){
+  if (!document.hidden){ tick(); fastTick(); }
+});
 
 // ===== מנוע זיקוקי דינור =====
 (function(){
